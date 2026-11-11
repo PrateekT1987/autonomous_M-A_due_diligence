@@ -55,6 +55,21 @@ SEC_USER_AGENT = os.getenv(
 )
 SEC_RATE_LIMIT_SECONDS = float(os.getenv("SEC_RATE_LIMIT", "0.12"))
 
+
+
+# ----- Default Data Path Decision -----
+# Local-first is the default: Ollama keeps all model I/O on-premises.
+# OpenRouter (remote) requires explicit configuration and a DPA’d key.
+# Tenant opt-out is not supported in the default configuration; 
+# remote model use requires explicit opt-in via LLM_PROVIDER=openrouter
+# and a verified DPA. This decision is intentional: the product ships 
+# with local execution as the default, and remote models are an opt-in 
+# feature for organizations with appropriate data-processing agreements.
+# Local-first also determines the default model: qwen2.5:7b-instruct.
+# Remote (OpenRouter) requires MODEL= and OPENROUTER_API_KEY in .env.
+LLM_PROVIDER = (os.getenv("LLM_PROVIDER") or "ollama").strip().lower()
+LLM_IS_REMOTE = LLM_PROVIDER in {"openrouter", "openai", "openai-compatible", "custom"}
+
 # ---------------------------------------------------------------- model access
 # `ollama` keeps everything on the machine. `openrouter` (or any OpenAI-compatible
 # endpoint) is used when credentials are supplied in .env.

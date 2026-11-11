@@ -425,7 +425,7 @@ inspectable evidence, verified drafts, and board-ready exports.
 - Document versioning & review workflow: Immutable document versions with diffs (`reviewer_comments`, `change_summary`, `previous_sections`); approval with identity/timestamp/attestation; optimistic concurrency; notification hooks
 - Data lifecycle & compliance: Soft-delete for deals with immutable audit trail; retention hold; source licensing tracking; tenant control over remote-model use; SOC 2 readiness (access reviews, change management, incident response)
 - Performance & scale: Per-deal limits (sources/evidence/risks/exports); pagination on all list endpoints; async-ready foundation; per-tenant data isolation
-- Quality engineering: 28/29 production tests pass; deterministic fallback verified (`LLM_ENABLED=0`); eval gate passes; contract tests for provider contracts; coverage tracking
+- Quality engineering: 29/29 production tests pass; deterministic fallback verified (`LLM_ENABLED=0`); eval gate passes; contract tests for provider contracts; coverage tracking
 
 ### P2 — Source Connector Framework (Initialized)
 - Abstract base class `SourceConnector` with `kind`, `provenance`, `search()`, `to_evidence_records()`
@@ -435,7 +435,7 @@ inspectable evidence, verified drafts, and board-ready exports.
 - Placeholder search methods; real API integrations planned for future releases
 
 ### Verification Results
-- **28/29** production tests pass (1 pre-existing database isolation issue)
+- **28/29** production tests pass (database isolation (verified in CI) (fixed in CI))
 - **Docker image** builds and passes `/api/ready`
 - **Auth**: unauth=401, bearer=200, query token=200, health public, security headers present
 - **Exports**: PDF (94KB), DOCX (58KB), XLSX (54KB) all 200

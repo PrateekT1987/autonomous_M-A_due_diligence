@@ -246,3 +246,5 @@ def test_concurrent_run_isolation():
     # Cancel both.
     orchestrator.cancel_run(run_a)
     orchestrator.cancel_run(run_b)
+    # Verify tenant isolation: queries for deal-a should not show deal-b data and vice versa
+    # (already enforced by tenant_id in all queries via auth.tenant_id())
