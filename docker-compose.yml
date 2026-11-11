@@ -1,0 +1,39 @@
+services:
+  api:
+    build: .
+    image: dossier:local
+    init: true
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    environment:
+      DOSSIER_ENV: production
+      # The API only enqueues; the worker below executes. This keeps research
+      # and drafting off the request path and survives API restarts.
+      DOSSIER_RUN_MODE: worker
+      DOSSIER_DATA: /app/data
+    volumes:
+      - dossier-data:/app/data
+    restart: unless-stopped
+
+  worker:
+    build: .
+    image: dossier:local
+    init: true
+    command: ["python", "-m", "dossier.cli", "worker"]
+    env_file:
+      - .env
+    environment:
+      DOSSIER_ENV: production
+      DOSSIER_RUN_MODE: worker
+      DOSSIER_DATA: /app/data
+    volumes:
+      - dossier-data:/app/data
+    depends_on:
+      api:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  dossier-data:

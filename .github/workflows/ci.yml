@@ -1,0 +1,42 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+      - name: Install locked dependencies
+        run: pip install -r requirements.lock
+      - name: Byte-compile
+        run: python -m compileall -q dossier tests
+      - name: Test
+        env:
+          LLM_ENABLED: "0"
+          DOSSIER_RUN_MODE: test
+        run: python -m pytest -q
+
+  container:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build image
+        run: docker build -t dossier:ci .
+      - name: Smoke test container
+        run: |
+          docker run -d --name dossier-ci -p 8000:8000 \
+            -e DOSSIER_RUN_MODE=test -e LLM_ENABLED=0 dossier:ci
+          for i in $(seq 1 30); do
+            if curl -fsS http://localhost:8000/api/ready; then exit 0; fi
+            sleep 2
+          done
+          docker logs dossier-ci
+          exit 1

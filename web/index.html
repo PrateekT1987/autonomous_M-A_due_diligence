@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dossier — Autonomous due diligence</title>
+<meta name="description" content="Autonomous due diligence for boutique M&A advisors. Citation-backed risk matrices and draft information memoranda from filings and news.">
+<link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/assets/styles.css">
+</head>
+<body>
+<div id="app">
+  <aside class="rail">
+    <div class="brand">
+      <div class="brand-mark" aria-hidden="true">
+        <svg viewBox="0 0 32 32" width="30" height="30"><path d="M7 3.5h12.2L26 10.3V28.5H7z" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M19 3.8V10h6.2" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M11 15h9M11 19h9M11 23h6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+      </div>
+      <div>
+        <div class="brand-name">Dossier</div>
+        <div class="brand-tag">Due diligence, evidenced.</div>
+      </div>
+    </div>
+
+    <button class="btn btn-primary btn-block" id="new-deal-btn">
+      <span class="plus">+</span> New deal
+    </button>
+
+    <div class="rail-label">Deals</div>
+    <nav class="deal-list" id="deal-list" aria-label="Deals"></nav>
+
+    <div class="rail-foot">
+      <button class="rail-demo" id="demo-btn">Load demo · Lovesac</button>
+      <div class="local-badge" id="local-badge">
+        <span class="pulse"></span>
+        <span id="local-badge-text">Checking model provider…</span>
+      </div>
+      <div class="rail-note" id="rail-note">Filings are indexed locally. The evidence ledger never leaves this machine.</div>
+    </div>
+  </aside>
+
+  <main class="main" id="main">
+    <div class="empty-state" id="welcome">
+      <div class="welcome-inner">
+        <div class="welcome-kicker">Autonomous due diligence</div>
+        <h1>From filings to a defensible<br>draft memorandum.</h1>
+        <p class="welcome-lede">Dossier reads SEC filings, XBRL financials and news, builds an evidence ledger, scores the risks that matter, and writes a citation-gated information memorandum. Every sentence can be traced to its source.</p>
+        <div class="welcome-actions">
+          <button class="btn btn-primary btn-lg" id="welcome-demo">Run the Lovesac demo</button>
+          <button class="btn btn-ghost btn-lg" id="welcome-new">Start with a ticker</button>
+        </div>
+        <div class="welcome-steps">
+          <div class="wstep"><span>01</span><b>Research</b><p>10-K, 10-Qs, proxy, 8-Ks and news are pulled from primary sources.</p></div>
+          <div class="wstep"><span>02</span><b>Analyse</b><p>A deterministic risk engine scores severity × likelihood and maps each risk to evidence.</p></div>
+          <div class="wstep"><span>03</span><b>Write</b><p>A 13-section memorandum is drafted, then every citation and figure is verified.</p></div>
+        </div>
+      </div>
+    </div>
+
+    <div id="workspace" class="workspace hidden">
+      <header class="topbar">
+        <div class="topbar-left">
+          <div class="crumbs" id="crumbs"></div>
+          <div class="company-line">
+            <h1 id="company-name">—</h1>
+            <span class="ticker" id="company-ticker"></span>
+            <span class="pill" id="deal-status"></span>
+          </div>
+        </div>
+        <div class="topbar-actions">
+          <div class="export-wrap">
+            <button class="btn btn-ghost" id="export-btn">Export <span class="chev">▾</span></button>
+            <div class="menu hidden" id="export-menu">
+              <button data-export="docx"><b>.docx</b><span>Word memorandum</span></button>
+              <button data-export="pdf"><b>.pdf</b><span>Print-ready memorandum</span></button>
+              <button data-export="xlsx"><b>.xlsx</b><span>Risk & evidence workbook</span></button>
+            </div>
+          </div>
+          <button class="btn btn-dark" id="run-btn"><span class="run-dot"></span> Run due diligence</button>
+        </div>
+      </header>
+
+      <div class="tabs" role="tablist">
+        <button class="tab active" data-tab="overview" role="tab">Overview</button>
+        <button class="tab" data-tab="research" role="tab">Research <span class="tab-count" id="tab-sources"></span></button>
+        <button class="tab" data-tab="risk" role="tab">Risk matrix <span class="tab-count" id="tab-risks"></span></button>
+        <button class="tab" data-tab="memo" role="tab">Memorandum <span class="tab-count" id="tab-trust"></span></button>
+      </div>
+
+      <section class="view" id="view-overview"></section>
+      <section class="view hidden" id="view-research"></section>
+      <section class="view hidden" id="view-risk"></section>
+      <section class="view hidden" id="view-memo"></section>
+    </div>
+  </main>
+
+  <div class="drawer-scrim hidden" id="scrim"></div>
+  <aside class="drawer hidden" id="drawer" aria-live="polite">
+    <div class="drawer-head">
+      <div class="drawer-kicker" id="drawer-kicker">Evidence</div>
+      <button class="icon-btn" id="drawer-close" aria-label="Close">×</button>
+    </div>
+    <div class="drawer-body" id="drawer-body"></div>
+  </aside>
+
+  <div class="modal-scrim hidden" id="modal-scrim">
+    <div class="modal" id="modal"></div>
+  </div>
+
+  <div class="toasts" id="toasts"></div>
+</div>
+<script src="/assets/app.js"></script>
+</body>
+</html>

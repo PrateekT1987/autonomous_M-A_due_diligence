@@ -1,0 +1,183 @@
+Production-grade roadmap for Dossier
+
+The core product is strong: citation-gated generation, deterministic fallback, an inspectable ledger and real exports. What is missing is mostly the operational shell around it — identity, durable execution, security, observability and proof of quality at scale.
+
+Below is the essential list, ordered by what blocks real customer use.
+
+P0 — Launch blockers
+
+1. Authentication, authorization and tenant isolation
+
+Today every API route is public and every deal is globally readable.
+
+- Add SSO/OIDC (Google Workspace, Microsoft Entra) and session management.
+- Introduce organizations, users, memberships and deal_access tables.
+- Put tenant_id on every deal-scoped table and enforce it in one query layer — never rely on route-by-route checks.
+- Add roles: owner, analyst, reviewer, read-only.
+- Require identity on approvals; the current actor is a free-text string.
+
+Files: dossier/app.py, dossier/db.py, all deal queries.
+
+2. Durable job execution
+
+Runs are daemon threads inside the web process (orchestrator.py:190). A deploy, crash or restart loses work and leaves runs stuck in running.
+
+- Move runs to a real queue: Celery/RQ/Dramatiq + Redis, or Postgres-backed (pgmq, River).
+- Separate API and worker processes.
+- Make stages idempotent and resumable; add retries with backoff per stage.
+- Add run cancellation, per-run timeouts and startup reconciliation for orphaned runs.
+- Add idempotency keys to POST /deals and POST /deals/{id}/run.
+- Replace in-process SSE with Redis pub/sub or polling so it survives multiple API replicas.
+
+3. Production database
+
+SQLite with WAL is excellent for a local demo, not for concurrent users and background workers.
+
+- Migrate to PostgreSQL.
+- Add a real migration tool (Alembic) and schema versioning; the current migration is hand-rolled.
+- Add connection pooling, statement timeouts, indexes for tenant + deal + status queries.
+- Backups: automated daily snapshots, point-in-time recovery, and a tested restore drill.
+- Add soft deletes, retention policies and legal-hold support.
+
+4. Secrets and configuration hardening
+
+- Remove the live key from .env in any shared environment; use a secrets manager (AWS Secrets Manager, Doppler, 1Password, Vault).
+- Rotate the OpenRouter and Tavily keys that have been used in development.
+- Validate configuration at startup and fail fast on missing/invalid values.
+- Set a real SEC_USER_AGENT with a monitored contact address; the default research@dossier.local is not production-appropriate.
+- Separate dev/staging/prod configuration and prohibit remote-model use in air-gapped tenants.
+
+5. API security baseline
+
+- Fix the global exception handler: it returns str(exc) to clients. Log the full error server-side; return a request ID only.
+- Add rate limiting per user/IP and per endpoint, especially /run, /export, /search and /demo.
+- Add security headers: CSP, HSTS, X-Content-Type-Options, Referrer-Policy, frame denial.
+- Disable /api/docs and /openapi.json in production, or protect them.
+- Add request-size limits and strict validation for identifiers, notes and actor fields.
+- Add CSRF protection if you move to cookie sessions.
+- Add SSRF-safe URL handling if users can ever supply source URLs.
+
+6. Observability and auditability
+
+There is logging via getLogger, but no configuration, no metrics and no request correlation.
+
+- Structured JSON logs with request_id, tenant_id, deal_id, run_id, stage.
+- Metrics: run duration by stage, source fetch failures, LLM latency/tokens/cost, export duration, queue depth, error rate.
+- Tracing across API → queue → research → LLM → export (OpenTelemetry).
+- Error tracking (Sentry) with PII scrubbing.
+- Append-only audit log for deal creation, runs, edits, approvals, exports and deletions; expose it to admins.
+- Alerting on failed runs, provider 429/5xx spikes, stale queues and backup failures.
+
+7. External dependency resilience
+
+- Add retries with exponential backoff and jitter to SEC, news RSS and LLM calls.
+- Add circuit breakers and clear degradation events in the UI.
+- Enforce per-deal token/cost budgets and provider quotas.
+- Cache with ETag/If-Modified-Since where supported; add cache invalidation and TTL policy.
+- Store source content hashes so changed filings are detectable.
+
+8. Containerization, CI/CD and pinned dependencies
+
+- Add a production Dockerfile (non-root user, multi-stage, healthcheck).
+- Pin dependencies in a lockfile; requirements.txt currently uses ranges only.
+- CI: lint, type-check, unit tests, API tests, export smoke tests, container build, vulnerability scan.
+- Staging environment with synthetic data and a deploy/rollback procedure.
+- Run migrations as a separate deploy step, never at app startup.
+P1 — Required for reliable paid use
+
+9. Model governance and prompt-injection defense
+
+Filings and news are untrusted text and can contain adversarial instructions.
+- Delimit source text explicitly and state that it is data, never instructions.
+- Keep tool access away from model output; models must only return schema-validated JSON.
+- Validate every model response against the same citation/numeric gates used for the memo — including callouts and risk text.
+- Record model ID, prompt version, temperature, token usage and response hash for every LLM call.
+- Build a golden evaluation set across sectors and measure citation coverage, numeric conflicts, risk recall and unsupported-claim rate on every prompt change.
+- Add provider fallback (primary → secondary → deterministic) and a kill switch.
+
+10. Document versioning and review workflow
+
+The current pipeline overwrites DOC-01 and the approval is a single status flip.
+
+- Immutable document versions with diffs and restore.
+- Reviewer comments/annotations tied to evidence IDs, sections and paragraphs.
+- Approval with identity, timestamp, attestation text and an exportable audit certificate.
+- Locking/optimistic concurrency so two reviewers cannot silently overwrite each other.
+- Notifications (email/Slack) for run completion, review requests and approvals.
+
+11. Data lifecycle and compliance
+
+- Encryption at rest and in transit; per-tenant keys if serving regulated clients.
+- Data retention and deletion APIs, including export and “right to erasure”.
+- Data-processing agreements and a clear subprocessor list for OpenRouter/Ollama hosting.
+- Explicit tenant control over remote-model use; redact or hash sensitive excerpts where possible.
+- Source licensing policy: SEC fair-access rules, news RSS terms, article copyright, XBRL data attribution.
+- SOC 2 readiness: access reviews, change management, incident response, vendor management.
+
+12. Performance and scale
+
+- Make source ingestion and LLM calls fully async; today much of the pipeline is synchronous.
+- Paginate sources, evidence, risks and reviews; the UI loads everything for a deal.
+- Cache rendered exports and document payloads; generate exports asynchronously for large deals.
+- Add load tests for concurrent runs, SSE connections and export downloads.
+- Set per-deal limits: filings, evidence records, source size, export size.
+
+13. Quality engineering
+
+- Tests currently cover utilities, writer/export and a thin API slice (19 tests).
+- Add research fixtures: mocked SEC/XBRL/news responses, malformed filings, amended filings, missing data.
+- Add orchestrator tests: retries, cancellation, crash recovery, concurrent runs.
+- Add end-to-end tests against a seeded deal with deterministic model stubs.
+- Add contract tests for the OpenRouter-compatible provider.
+- Add visual regression tests for the PDF/DOCX and the main UI tabs.
+- Track coverage and require it not to regress.
+
+14. Source breadth and data-room ingestion
+
+This is the biggest product gap versus “real due diligence”.
+
+- Private data-room ingestion: PDF, XLSX, DOCX, email, OCR for scanned documents.
+- Court dockets, patents, trademark filings, UCC/lien searches, regulatory actions.
+- Management accounts, QoE workbooks and contract review.
+- A source-connector framework with provenance, permissions and refresh semantics.
+- Human corrections: let an analyst fix an extracted fact and preserve the correction as evidence.
+
+P2 — Differentiation and polish
+
+- Comparable-company and precedent-transaction modules with licensed market data.
+- Sector playbooks that change risk rules, KPIs and diligence questions by industry.
+- Collaboration: shared deal rooms, assignments, deadlines, activity feed.
+- Buyer-list and outreach workflows with CRM export.
+- Localization for cross-border deals and non-US filings (20-F, AIF, Companies House).
+- Accessibility: WCAG 2.2 AA for the app and tagged/accessible PDFs.
+- Usage analytics: time saved per deal, sections edited, evidence opened, approval cycle time.
+
+Minimum production gate
+
+Before calling it production, I would require all of these:
+
+- SSO + tenant-scoped authorization on every route
+- Durable queue with retries, cancellation and crash recovery
+- PostgreSQL + migrations + tested backups
+- Secrets manager and rotated keys
+- Rate limits, security headers, safe error responses
+- Structured logs, metrics, tracing, error tracking, audit log
+- Retries/backoff/circuit breakers for SEC, news and LLM
+- Pinned dependencies, Docker, CI/CD, staging and rollback
+- Golden eval set and citation/numeric gates on all model output
+- Retention/deletion and remote-model tenant controls
+- Load test at expected concurrent runs and exports
+
+What I would do first
+
+A realistic first production sprint:
+
+1. Auth + tenant model.
+2. Queue/worker split and durable runs.
+3. PostgreSQL + Alembic.
+4. Secrets, security headers and safe errors.
+5. Structured logs, metrics and audit events.
+6. Docker + CI + pinned dependencies.
+7. Golden eval set and model-output gates.
+
+That sequence removes the launch blockers without changing the product’s core architecture. The research/analysis/writing design is already the hard part and is worth preserving.
