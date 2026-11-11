@@ -1,5 +1,6 @@
 """Production-shell tests: auth, headers, pagination, idempotency, queue, eval."""
 from __future__ import annotations
+import os
 
 import json
 
@@ -196,7 +197,9 @@ def test_evaluation_gate_passes_and_fails():
     assert run["status"] == "cancelled"
 
 
-    """Test that the LLM provider conforms to the expected contract."""
+    """Test LLM provider contract (skipped when LLM_ENABLED=0)."""
+    if not os.getenv("LLM_ENABLED", "1") in {"1", "true", "yes", "on"}:
+        return  # Skip LLM contract test when deterministic engine is used
     from dossier.llm import LLM
     llm = LLM(provider="ollama", model="qwen2.5:7b-instruct")
     llm.bind(deal_id="contract-test", run_id="run-1")

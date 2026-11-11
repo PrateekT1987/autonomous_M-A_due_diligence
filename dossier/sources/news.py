@@ -16,6 +16,8 @@ from ..textutil import html_to_text, normalize
 
 CACHE = config.CACHE_DIR / "news"
 CACHE.mkdir(parents=True, exist_ok=True)
+# SSRF allowlist: only these schemes are permitted for outbound fetches
+SSRF_ALLOWED_SCHEMES = {"http", "https"}
 
 
 def _cache(url: str) -> Path:

@@ -18,6 +18,8 @@ from ..textutil import html_to_text, normalize, split_sections
 
 SEC = "https://www.sec.gov"
 DATA = "https://data.sec.gov"
+# SSRF allowlist: only these schemes are permitted for outbound fetches
+SSRF_ALLOWED_SCHEMES = {"http", "https"}
 _last_call = 0.0
 _BREAKER = CircuitBreaker("sec_edgar", threshold=5, cooldown=90.0)
 

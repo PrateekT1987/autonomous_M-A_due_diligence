@@ -4,6 +4,7 @@ from __future__ import annotations
 import html
 import json
 import re
+import nh3
 import unicodedata
 from difflib import SequenceMatcher
 

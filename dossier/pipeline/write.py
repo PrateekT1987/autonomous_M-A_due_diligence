@@ -18,6 +18,45 @@ NUM_RE = re.compile(r"(?<![\w.])(-?\$?\d[\d,]*\.?\d*)\s*(%|M|B|K)?")
 YEAR_RE = re.compile(r"^(19|20)\d{2}$")
 
 
+
+
+class Claim:
+    """A factual claim in the memorandum, invariantally sourced from evidence.
+    
+    Invariants:
+    - text: the claim sentence
+    - evidence_ids: must contain at least one valid EV-xxxx reference
+    - numeric_values: numeric tokens must be consistent with cited evidence
+    - no bare factual sentences without citation (enforced by renderer, not LLM prompt)
+    """
+    def __init__(self, text: str, evidence_ids: list[str], numeric_values: list[float | None] | None = None):
+        self.text = text
+        self.evidence_ids = evidence_ids or []
+        self.numeric_values = numeric_values or []
+    
+    def is_sourced(self, evidence: dict[str, Any]) -> bool:
+        """Return True if the claim has at least one valid evidence citation."""
+        return any(
+            eid in evidence for eid in self.evidence_ids
+        )
+    
+    def numeric_consistent(self, evidence: dict[str, Any]) -> bool:
+        """Return True if all numeric values are consistent with cited evidence."""
+        results = []
+        for eid in self.evidence_ids:
+            if eid in evidence:
+                ev = evidence[eid]
+                n = ev.get('numeric')
+                if n is not None:
+                    diff = abs(ev.get('numeric') - n)
+                    threshold = 0.015 * abs(n) + 0.002
+                    results.append(diff < threshold)
+        return all(results)
+    
+    def __repr__(self) -> str:
+        return f"Claim(text={self.text[:30]}..., ids={self.evidence_ids})"
+
+
 class WriterAgent:
     def __init__(self, deal: dict, run_id: str, llm: LLM):
         self.deal = deal

@@ -1,7 +1,17 @@
 """Research agent: pulls filings, financial facts and news into an evidence ledger."""
 from __future__ import annotations
 
+import hashlib
 import re
+
+def evidence_id(deal_id: str, accession: str = "", locator: str = "", value: str = "", period: str = "") -> str:
+    """Generate content-addressed evidence ID: EV-{sha256[:10]}}.
+    The ID is deterministic based on key facts, so re-running research
+    produces the same IDs rather than re-numbering.
+    """
+    data = f"{deal_id}|{accession}|{locator}|{value}|{period}"
+    h = hashlib.sha256(data.encode()).hexdigest()[:10]
+    return f"EV-{h.upper()}"
 import struct
 from typing import Any, Callable
 
@@ -160,7 +170,7 @@ class ResearchAgent:
             if key in self._seen_quotes:
                 return ""
             self._seen_quotes.add(key)
-        eid = db.next_id(self.deal_id, "evidence", "EV", 4)
+        eid = evidence_id(self.deal_id, source_id or "", locator or "", value or "", period or "")
         db.insert(
             "evidence",
             {
