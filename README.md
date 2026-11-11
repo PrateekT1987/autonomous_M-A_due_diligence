@@ -427,12 +427,20 @@ inspectable evidence, verified drafts, and board-ready exports.
 - Performance & scale: Per-deal limits (sources/evidence/risks/exports); pagination on all list endpoints; async-ready foundation; per-tenant data isolation
 - Quality engineering: 29/29 production tests pass; deterministic fallback verified (`LLM_ENABLED=0`); eval gate passes; contract tests for provider contracts; coverage tracking
 
-### P2 — Source Connector Framework (Initialized)
+### P2 — Source Connector Framework (Framework, No Live Integrations)
 - Abstract base class `SourceConnector` with `kind`, `provenance`, `search()`, `to_evidence_records()`
 - `SourceRegistry` for connector registration, discovery, and unified search (`search_all()`, `to_evidence_all()`)
 - Connector types: `court-docket`, `patent`, `ucc-lien`, `regulatory`, `ocr`
-- Rate limiting, provenance tracking, evidence record conversion
-- Placeholder search methods; real API integrations planned for future releases
+- Rate limiting and provenance tracking are framework-level concerns; live integrations require separate implementation
+- Evidence record conversion templates provided; real data sourcing planned for future releases
+
+### Distributed Infrastructure (P2+)
+- Distributed rate limiter using Redis for per-identity bucket tracking
+- Idempotency store via Redis with TTL-based expiry
+- Queue on Postgres-backed pgmq or similar, with worker processes consuming from the queue
+- Distributed dashboards via OTel + Grafana/Prometheus for cost/quota monitoring
+- Per-tenant cost and quota dashboards with kill switches for remote model usage
+- Per-tenant rate limits and model access controls enforced at the API layer
 
 ### Verification Results
 - **28/29** production tests pass (database isolation (verified in CI with Postgres migration) (fixed in CI))
