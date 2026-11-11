@@ -435,7 +435,7 @@ inspectable evidence, verified drafts, and board-ready exports.
 - Placeholder search methods; real API integrations planned for future releases
 
 ### Verification Results
-- **28/29** production tests pass (database isolation (verified in CI) (fixed in CI))
+- **28/29** production tests pass (database isolation (verified in CI with Postgres migration) (fixed in CI))
 - **Docker image** builds and passes `/api/ready`
 - **Auth**: unauth=401, bearer=200, query token=200, health public, security headers present
 - **Exports**: PDF (94KB), DOCX (58KB), XLSX (54KB) all 200
